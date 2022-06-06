@@ -1,0 +1,39 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=description content="A simple privacy oriented bootstrap hugo blog"><meta name=keywords content="system,ICP,OS,C,"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.100.1"><link rel=stylesheet type=text/css href=https://gamjagoon.github.io/css/bootstrap.min.css><title>IPC 01 Overview</title></head><body><div id=content><nav class="navbar text-center justify-content-start sticky-top bg-white mt-2 mb-5"><a href=https://gamjagoon.github.io><span class="btn btn-sm btn-outline-primary m-1">Home</span></a>
+<a href=https://gamjagoon.github.io/about><span class="btn btn-sm btn-outline-secondary m-1">About</span></a>
+<a href=https://gamjagoon.github.io/post><span class="btn btn-sm btn-outline-success m-1">Blog</span></a>
+<a href=https://gamjagoon.github.io/tags><span class="btn btn-sm btn-outline-warning m-1">Tags</span></a></nav><section class="container text-justified mt-3"><h2 class=font-weight-bold>IPC 01 Overview</h2><small class="text-secondary mb-5">Posted on June 6, 2022 | 2 minute read</small><div class="text-monospace mt-2" style="font-family:nanum gothic,sans-serif"><h2 id=ipc-통신의-정의와-필요성>IPC 통신의 정의와 필요성</h2><p>프로세서가 independent 하게 동작할때 문제가 되지 않는다. 그러나 프로세서가 서로의 데이터를 주고 받을때 문제가 생긴다. 이를 해결하기 위해서 데이터를 주고 받는 방법이 필요하다.
+두가지 모델이 있음</p><ol><li>shared memory : 두프로세서가 공유하는 메모리 공간을 사용하는 방법</li><li>message passing : 운영 체제에서 프로세서 간의 데이터를 주고 받는것게 개입하는 방법</li></ol><p>IPC 통신에서 고려해야할 문제는 Producer-Consumer problem이다. 생산자는 생산품에 대한 정보를 소비자에게 알려줘야한다는 문제를 가지고 있다.</p><h3 id=shared-memory-해결-방법>shared memory 해결 방법</h3><p>공급자와 소비자가 동시에 실행된다고 했을때 서로 공유하는 메모리 공간에 버퍼를 사용한다고 가정하고, 공급자는 버퍼를 채우고, 소비자는 버퍼를 비운다고 한다.
+이때 공유하는 메모리 공간은 공급자, 소비자 프로세서면 사용가능하게 한다.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#75715e>#define BUFFER_SIZE 10
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>typedef</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>    ...;
+</span></span><span style=display:flex><span>}item
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>item buffer[BUFFER_SIZE];
+</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> in <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> out <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span></code></pre></div><p>위 코드와 같이 하나의 버퍼를 생산자와 소비자가 같은 포인터 값(사용하는 데이터의 위치)를 사용함</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#75715e>/* producer proccess shared memory*/</span>
+</span></span><span style=display:flex><span>item next_produced;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>while</span>(true){
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span>(((in <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>) <span style=color:#f92672>%</span> BUFFER_SIZE) <span style=color:#f92672>==</span> out);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    buffer[in] <span style=color:#f92672>=</span> next_produced;
+</span></span><span style=display:flex><span>    in <span style=color:#f92672>=</span> (in <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>) <span style=color:#f92672>%</span> BUFFER_SIZE;
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#75715e>/* consummer proccess shared memory*/</span>
+</span></span><span style=display:flex><span>item next_consumed;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>while</span>(true){
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span>(in <span style=color:#f92672>==</span> out); <span style=color:#75715e>// do nothing
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>    next_consumed <span style=color:#f92672>=</span> buffer[out];
+</span></span><span style=display:flex><span>    out <span style=color:#f92672>=</span> (out <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>) <span style=color:#f92672>%</span> BUFFER_SIZE;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><h3 id=shared-memory-방법의-문제점>shared memory 방법의 문제점</h3><p>메모리 영역에 대한 액세스 권한 설정과 관리를 프로그래머가 구현해야함
+그래서 프로세서가 늘어나고, 하나의 메모리 영역을 여러개의 어플리 케이션이 공유할 경우 아주 복잡한 문제가 생길 수 있음</p><h3 id=message-passing-방식>message passing 방식</h3><p>O/S가 cooperating processed 에게 서로간에 메세지를 주고 받을 수 있는 수단을 제공함
+2개의 메소드를 사용해서 사용함</p><ul><li>send(message)</li><li>receive(message)</li></ul><p>두개의 커뮤니 케이션 링크를 사용해서 데이터를 주고 받으며 여러가지 옵션이 존재함</p><ul><li>direct / indirect</li><li>synchronous / asynchronous</li></ul><p><strong>blocking send</strong> : 송신측에서 수신측이 데이터를 읽기 전까지 blocked 되는 것을 의미한다</p><p><strong>Non-blocking send</strong> : 송신측은 메세지를 보내고 가만히 있는것을 의미</p><p><strong>synchronous</strong> : 동시에 진행 된다는 의미로, 결과가 나오지 않는다면 뒤의 작업을 진행하지 않는다는것을 의미한다</p><p><strong>asynchronous</strong> : 동시에 똑같이 진행되지 않는다는 의미, 작어블의 요청과 응답의 타이밍이 같지 않아도 된다는 것을 의미한다.</p></div><hr><div>Share via
+<a title=email href='mailto:?subject=IPC%2001%20Overview&body=https%3a%2f%2fgamjagoon.github.io%2fpost%2fos%2fipc_01%2f'><button class='btn btn-sm btn-light'>✉️</button></a></div><br><code>Tags:<span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/system>system</a></span>
+<span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/icp>ICP</a></span>
+<span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/os>OS</a></span>
+<span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/c>C</a></span></code><br><div id=disqus_thread></div><script type=application/javascript>window.disqus_config=function(){},function(){if(["localhost","127.0.0.1"].indexOf(window.location.hostname)!=-1){document.getElementById('disqus_thread').innerHTML='Disqus comments not available by default when the website is previewed locally.';return}var t=document,e=t.createElement('script');e.async=!0,e.src='//minjae-blog-1.disqus.com/embed.js',e.setAttribute('data-timestamp',+new Date),(t.head||t.body).appendChild(e)}()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript><a href=https://disqus.com class=dsq-brlink>comments powered by <span class=logo-disqus>Disqus</span></a></section><div class="container text-center mt-3"><iframe src="https://duckduckgo.com/search.html?site=https://gamjagoon.github.io&prefill=Site%20Search" style=overflow:hidden;margin:0;padding:0;max-width:80%;height:40px frameborder=0></iframe></div></div></body><footer><div class="container-fluid bg-dark text-white text-monospace text-center mt-2"><small>Copyright © 2008–2021, Steve Francia and the Hugo Authors; all rights reserved. Theme: <a class=text-warning href=https://themes.gohugo.io/monopriv>Monopriv</a> | Crafted with <a class=text-warning href=https://gohugo.io>Hugo</a></small></div></footer><div></div></html>

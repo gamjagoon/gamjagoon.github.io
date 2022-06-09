@@ -1,7 +1,33 @@
 <!doctype html><html lang=en><head><meta charset=utf-8><meta name=description content="A simple privacy oriented bootstrap hugo blog"><meta name=keywords content="system,ICP,OS,C,shared memory,"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.100.1"><link rel=stylesheet type=text/css href=https://gamjagoon.github.io/css/bootstrap.min.css><title>IPC 02 Shared memory</title></head><body><div id=content><nav class="navbar text-center justify-content-start sticky-top bg-white mt-2 mb-5"><a href=https://gamjagoon.github.io><span class="btn btn-sm btn-outline-primary m-1">Home</span></a>
 <a href=https://gamjagoon.github.io/about><span class="btn btn-sm btn-outline-secondary m-1">About</span></a>
 <a href=https://gamjagoon.github.io/post><span class="btn btn-sm btn-outline-success m-1">Blog</span></a>
-<a href=https://gamjagoon.github.io/tags><span class="btn btn-sm btn-outline-warning m-1">Tags</span></a></nav><section class="container text-justified mt-3"><h2 class=font-weight-bold>IPC 02 Shared memory</h2><small class="text-secondary mb-5">Posted on June 6, 2022 | 1 minute read</small><div class="text-monospace mt-2" style="font-family:nanum gothic,sans-serif"><h3 id=shared-memory-init>Shared memory Init</h3><h3 id=shared-memory를-이용한-io>Shared memory를 이용한 I/O</h3></div><hr><div>Share via
+<a href=https://gamjagoon.github.io/tags><span class="btn btn-sm btn-outline-warning m-1">Tags</span></a></nav><section class="container text-justified mt-3"><h2 class=font-weight-bold>IPC 02 Shared memory</h2><small class="text-secondary mb-5">Posted on June 6, 2022 | 1 minute read</small><div class="text-monospace mt-2" style="font-family:nanum gothic,sans-serif"><h3 id=01-shared-memory-init>01. Shared memory Init</h3><p>shared memory를 이용한 프로세서 메모리 생성 코드는 아래와 같다
+shm_id 값에 KEY_NUM을 사용해 shared memory를 생성하고 받은 shared memory id를 저장한다.
+그후 shm_addr에 shm_id를 이용해서 주소값을 받는다.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span>	shm_id <span style=color:#f92672>=</span> shmget((key_t)KEY_NUM, (size_t)MEM_SIZE,IPC_CREAT <span style=color:#f92672>|</span> <span style=color:#ae81ff>0666</span>);
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span>(shm_id <span style=color:#f92672>==</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>){
+</span></span><span style=display:flex><span>		perror(<span style=color:#e6db74>&#34;shmget error :&#34;</span>);
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	shm_addr <span style=color:#f92672>=</span> shmat(shm_id, (<span style=color:#66d9ef>void</span><span style=color:#f92672>*</span>)<span style=color:#ae81ff>0</span>,<span style=color:#ae81ff>0</span>); 
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span>(shm_addr <span style=color:#f92672>==</span> (<span style=color:#66d9ef>void</span><span style=color:#f92672>*</span>)<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>){
+</span></span><span style=display:flex><span>		perror(<span style=color:#e6db74>&#34;shmat error :&#34;</span>);
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>	}
+</span></span></code></pre></div><h3 id=02-shared-memory를-이용한-io>02. Shared memory를 이용한 I/O</h3><p>(void <em>)형의 주소값을 받고 이를 사용해서 데이터를 저장한다.<br>구조체를 정의하고 void</em> 형에서 선선한 struct_t *으로 전환하여 데이터 Read/Write를 수행한다.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>typedef</span> <span style=color:#66d9ef>struct</span> block {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>int</span> player; <span style=color:#75715e>// 
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>	<span style=color:#66d9ef>int</span> opened; <span style=color:#75715e>// 
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>}block_t;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>typedef</span> <span style=color:#66d9ef>struct</span> blocks{
+</span></span><span style=display:flex><span>	block_t block[BLK_SIZE];
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>int</span> unuse; <span style=color:#75715e>// 
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>	<span style=color:#66d9ef>int</span> player_a; <span style=color:#75715e>// 
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>	<span style=color:#66d9ef>int</span> player_b; <span style=color:#75715e>// 
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>}blocks_t;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>shm_block <span style=color:#f92672>=</span> (blocks_t <span style=color:#f92672>*</span>)shm_addr;
+</span></span></code></pre></div></div><hr><div>Share via
 <a title=email href='mailto:?subject=IPC%2002%20Shared%20memory&body=https%3a%2f%2fgamjagoon.github.io%2fpost%2fos%2fipc_02%2f'><button class='btn btn-sm btn-light'>✉️</button></a></div><br><code>Tags:<span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/system>system</a></span>
 <span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/icp>ICP</a></span>
 <span class='badge badge-dark'><a class=text-white href=https://gamjagoon.github.io/tags/os>OS</a></span>
